@@ -101,7 +101,7 @@
 
 		// Lead capture
 		webhook:        attr( 'webhook', '' ),
-		formId:         attr( 'form-id', 'rpr-avm-embed' ),
+		formId:         ( attr( 'form-id', 'rpr-avm-embed' ) || 'rpr-avm-embed' ).replace( /[^a-zA-Z0-9_-]/g, '' ),
 
 		// Fields config (JSON string or use defaults)
 		fieldsJson:     attr( 'fields', '' ),
@@ -149,6 +149,21 @@
 		CFG.webhook = '';
 	}
 
+	// Block webhooks to localhost/private IPs (defense in depth — fetch runs client-side but still good practice)
+	if ( CFG.webhook ) {
+		try {
+			const whUrl = new URL( CFG.webhook );
+			const blocked = [ 'localhost', '127.0.0.1', '0.0.0.0', '[::1]' ];
+			if ( blocked.includes( whUrl.hostname ) || /^(10|172\.(1[6-9]|2\d|3[01])|192\.168)\./.test( whUrl.hostname ) ) {
+				console.error( 'RPR AVM Embed: Webhook URL points to a private/local address. Webhook disabled.' );
+				CFG.webhook = '';
+			}
+		} catch ( e ) {
+			console.error( 'RPR AVM Embed: Invalid webhook URL. Webhook disabled.' );
+			CFG.webhook = '';
+		}
+	}
+
 	if ( ! CFG.webhook ) {
 		console.warn( 'RPR AVM Embed: No webhook configured. Leads will NOT be captured. The RPR widget will still display.' );
 	}
@@ -178,6 +193,13 @@
 		return '#' + [r,g,b].map( c => c.toString(16).padStart(2,'0') ).join('');
 	}
 
+	function safeCssColor( val ) {
+		// Allow hex, rgb/rgba, hsl/hsla, named colors. Block url(), expression(), etc.
+		if ( ! val ) return val;
+		if ( /url\s*\(|expression\s*\(|import|javascript:/i.test( val ) ) return '';
+		return val;
+	}
+
 	const brandHover = CFG.colorBrandHover || darkenHex( CFG.colorBrand, 20 );
 	const focusRing  = CFG.colorFocusRing || hexToRgba( CFG.colorBrand, 0.15 );
 	const linkColor  = CFG.colorLink || CFG.colorBrand;
@@ -185,7 +207,19 @@
 	/* ── Default fields ───────────────────────────────────────────── */
 	let FIELDS;
 	if ( CFG.fieldsJson ) {
-		try { FIELDS = JSON.parse( CFG.fieldsJson ); }
+		try {
+			FIELDS = JSON.parse( CFG.fieldsJson );
+			// Sanitize field IDs — they're used in selectors and element IDs
+			if ( Array.isArray( FIELDS ) ) {
+				FIELDS = FIELDS.filter( f => f && typeof f === 'object' && f.id );
+				FIELDS.forEach( f => {
+					f.id = String( f.id ).replace( /[^a-zA-Z0-9_-]/g, '' );
+					if ( ! f.id ) f.id = 'field_' + Math.random().toString(36).slice(2,6);
+				} );
+			} else {
+				FIELDS = null;
+			}
+		}
 		catch ( e ) { console.warn( 'RPR AVM Embed: Invalid fields JSON, using defaults.' ); FIELDS = null; }
 	}
 	if ( ! FIELDS ) {
@@ -502,24 +536,24 @@
 
 		// Apply CSS custom properties
 		const s = wrap.style;
-		s.setProperty( '--rpr-brand', CFG.colorBrand );
-		s.setProperty( '--rpr-brand-hover', brandHover );
-		s.setProperty( '--rpr-btn-text', CFG.colorBtnText );
-		s.setProperty( '--rpr-header-text', CFG.colorHeaderText );
-		s.setProperty( '--rpr-card-bg', CFG.colorCardBg );
-		s.setProperty( '--rpr-card-border', CFG.colorCardBorder );
-		s.setProperty( '--rpr-page-bg', CFG.colorPageBg );
-		s.setProperty( '--rpr-input-border', CFG.colorInputBorder );
-		s.setProperty( '--rpr-focus-ring', focusRing );
-		s.setProperty( '--rpr-error', CFG.colorError );
-		s.setProperty( '--rpr-strip-bg', CFG.colorStripBg );
-		s.setProperty( '--rpr-link', linkColor );
+		s.setProperty( '--rpr-brand', safeCssColor( CFG.colorBrand ) );
+		s.setProperty( '--rpr-brand-hover', safeCssColor( brandHover ) );
+		s.setProperty( '--rpr-btn-text', safeCssColor( CFG.colorBtnText ) );
+		s.setProperty( '--rpr-header-text', safeCssColor( CFG.colorHeaderText ) );
+		s.setProperty( '--rpr-card-bg', safeCssColor( CFG.colorCardBg ) );
+		s.setProperty( '--rpr-card-border', safeCssColor( CFG.colorCardBorder ) );
+		s.setProperty( '--rpr-page-bg', safeCssColor( CFG.colorPageBg ) );
+		s.setProperty( '--rpr-input-border', safeCssColor( CFG.colorInputBorder ) );
+		s.setProperty( '--rpr-focus-ring', safeCssColor( focusRing ) );
+		s.setProperty( '--rpr-error', safeCssColor( CFG.colorError ) );
+		s.setProperty( '--rpr-strip-bg', safeCssColor( CFG.colorStripBg ) );
+		s.setProperty( '--rpr-link', safeCssColor( linkColor ) );
 		s.setProperty( '--rpr-font-heading', `'${safeFontName( CFG.fontHeading )}', Georgia, serif` );
 		s.setProperty( '--rpr-font-body', `'${safeFontName( CFG.fontBody )}', system-ui, sans-serif` );
-		s.setProperty( '--rpr-font-size-base', CFG.fontSize + 'px' );
-		s.setProperty( '--rpr-card-max-width', CFG.cardMaxWidth + 'px' );
-		s.setProperty( '--rpr-card-radius', CFG.cardRadius + 'px' );
-		s.setProperty( '--rpr-widget-min-h', CFG.widgetMinH + 'px' );
+		s.setProperty( '--rpr-font-size-base', parseInt( CFG.fontSize, 10 ) + 'px' );
+		s.setProperty( '--rpr-card-max-width', parseInt( CFG.cardMaxWidth, 10 ) + 'px' );
+		s.setProperty( '--rpr-card-radius', parseInt( CFG.cardRadius, 10 ) + 'px' );
+		s.setProperty( '--rpr-widget-min-h', parseInt( CFG.widgetMinH, 10 ) + 'px' );
 		const padMap = { none: '0', compact: '8px', comfortable: '24px' };
 		s.setProperty( '--rpr-widget-padding', padMap[ CFG.widgetPadding ] || '24px' );
 
@@ -614,7 +648,7 @@
 	function buildHeader() {
 		const header = el( 'div', { className: 'rpr-e-header' } );
 		const avatar = el( 'div', { className: 'rpr-e-avatar' } );
-		if ( CFG.logoUrl ) {
+		if ( CFG.logoUrl && /^https?:\/\//i.test( CFG.logoUrl ) ) {
 			avatar.appendChild( el( 'img', { src: CFG.logoUrl, alt: CFG.agentName } ) );
 		} else {
 			avatar.textContent = initials( CFG.agentName );
@@ -686,18 +720,22 @@
 			}
 
 			// Fire webhook
+			// Note: Zapier/Make webhooks don't return CORS headers, so we use
+			// no-cors mode. The data arrives at Zapier but we get an opaque
+			// response (can't read status). This is the standard pattern for
+			// cross-origin form submissions from embeddable widgets.
 			let webhookOk = true;
 			if ( CFG.webhook ) {
 				try {
-					const res = await fetch( CFG.webhook, {
+					await fetch( CFG.webhook, {
 						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
+						mode: 'no-cors',
+						headers: { 'Content-Type': 'text/plain' },
 						body: JSON.stringify( payload ),
+						keepalive: true,
 					} );
-					if ( ! res.ok ) {
-						console.warn( 'RPR AVM Embed: Webhook returned ' + res.status );
-						webhookOk = false;
-					}
+					// With no-cors we can't verify the response, but the request
+					// was sent successfully. Zapier/Make will receive it.
 				} catch ( e ) {
 					console.warn( 'RPR AVM Embed: Webhook error', e );
 					webhookOk = false;
@@ -846,6 +884,12 @@
 		mount.appendChild( iframe );
 	}
 
+	function safeJsonForScript( val ) {
+		// JSON.stringify is safe for data, but the result is embedded inside a <script> block
+		// in an srcdoc iframe. We must prevent </script> from appearing in the output.
+		return JSON.stringify( val ).replace( /<\//g, '<\\/' );
+	}
+
 	function buildWidgetDoc( address ) {
 		let widgetCss = buildWidgetCss();
 		let safeCss = ( CFG.widgetCustomCss || '' ).replace( /<\/?style[^>]*>/gi, '' ).replace( /<script/gi, '' );
@@ -872,10 +916,10 @@
 			'var _f=window.fetch;' +
 			'window.fetch=function(u,o){if(typeof u==="string"&&u.startsWith("//"))u="https:"+u;return _f.call(this,u,o);};' +
 			'var rprAvmWidgetOptions={' +
-			'Token:' + JSON.stringify( CFG.rprToken ) + ',' +
-			'Query:' + JSON.stringify( address ) + ',' +
-			'CoBrandCode:' + JSON.stringify( CFG.rprCobrand ) + ',' +
-			'ShowRprLinks:' + JSON.stringify( CFG.rprShowLinks ) +
+			'Token:' + safeJsonForScript( CFG.rprToken ) + ',' +
+			'Query:' + safeJsonForScript( address ) + ',' +
+			'CoBrandCode:' + safeJsonForScript( CFG.rprCobrand ) + ',' +
+			'ShowRprLinks:' + safeJsonForScript( CFG.rprShowLinks ) +
 			'};' +
 			'<\/script>' +
 			'<script src="https://www.narrpr.com/widgets/avm-widget/widget.ashx/script"><\/script>' +
