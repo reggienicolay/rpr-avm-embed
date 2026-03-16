@@ -80,7 +80,7 @@
 
 		// Text strings
 		headline:       attr( 'headline', "What's your home worth?" ),
-		subheadline:    attr( 'subheadline', 'Get a free, data-driven estimate powered by Realtors Property Resource\u00a0\u2014 used by over 1.4\u00a0million REALTORS\u00ae nationwide.' ),
+		subheadline:    attr( 'subheadline', 'Get a free, data-driven estimate powered by Realtors Property Resource.' ),
 		buttonText:     attr( 'button-text', 'Get my free home value estimate' ),
 		disclaimer:     attr( 'disclaimer', 'Your information is kept private and will never be sold. A local REALTOR\u00ae may follow up to discuss your results.' ),
 		sendingText:    attr( 'sending-text', 'Sending\u2026' ),
