@@ -1,6 +1,6 @@
 /**
  * RPR AVM Lead Capture — Standalone Embeddable Widget
- * Version: 1.0.0
+ * Version: 1.0.3
  *
  * Zero-dependency, platform-agnostic embed script.
  * Works on Luxury Presence, Squarespace, Wix, static HTML, or any website.
