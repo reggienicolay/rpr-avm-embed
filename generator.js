@@ -12,13 +12,16 @@ document.addEventListener('DOMContentLoaded', function() {
     'rprToken','webhook','formId','agentName','brokerage','logoUrl',
     'colorBrandHex','headline','subheadline','btnLabel',
     'floatLabel','modalTrigger','fontHeading','fontBody',
-    'cardBg','cardBorder','cardRadius','cardMaxWidth',
+    'cardBg','cardBorder','cardRadius',
     'googleKey','gdprText','disclaimer'
   ];
   inputIds.forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.addEventListener('input', generate);
   });
+
+  /* Card max width is a select, not text input */
+  document.getElementById('cardMaxWidth').addEventListener('change', generate);
 
   /* Color picker sync */
   var picker = document.getElementById('colorBrandPicker');
@@ -146,6 +149,16 @@ function renderPreview(cfg) {
   card.style.background   = cardBg;
   card.style.borderColor  = cardBdr;
   card.style.fontFamily   = "'" + bodyFont + "', system-ui, sans-serif";
+
+  /* Max width: support px, %, and none */
+  var maxW = cfg.cardMaxWidth || '520';
+  if (maxW === 'none') {
+    card.style.maxWidth = 'none';
+  } else if (maxW.indexOf('%') !== -1) {
+    card.style.maxWidth = maxW;
+  } else {
+    card.style.maxWidth = parseInt(maxW, 10) + 'px';
+  }
 
   var html = '';
 

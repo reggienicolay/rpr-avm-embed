@@ -1,6 +1,6 @@
 /**
- * RPR AVM Lead Capture — Standalone Embeddable Widget
- * Version: 1.0.3
+ * RPR AVM Lead Capture -- Standalone Embeddable Widget
+ * Version: 1.0.0
  *
  * Zero-dependency, platform-agnostic embed script.
  * Works on Luxury Presence, Squarespace, Wix, static HTML, or any website.
@@ -21,7 +21,7 @@
 	'use strict';
 
 	/* ================================================================
-	   §1  DETECT OUR OWN SCRIPT TAG & READ CONFIG
+	   S1  DETECT OUR OWN SCRIPT TAG & READ CONFIG
 	   ================================================================ */
 	const SCRIPT = document.currentScript || ( function () {
 		const scripts = document.querySelectorAll( 'script[data-rpr-token]' );
@@ -44,7 +44,7 @@
 		return v !== 'false' && v !== '0';
 	};
 
-	/* ── Configuration from data-* attributes ─────────────────────── */
+	/* -- Configuration from data-* attributes ----------------------- */
 	const CFG = {
 		// RPR Widget
 		rprToken:       attr( 'rpr-token', '' ),
@@ -80,7 +80,7 @@
 
 		// Text strings
 		headline:       attr( 'headline', "What's your home worth?" ),
-		subheadline:    attr( 'subheadline', 'Get a free, data-driven estimate powered by Realtors Property Resource.' ),
+		subheadline:    attr( 'subheadline', 'Get a free, data-driven estimate powered by Realtors Property Resource\u00a0\u2014 used by over 1.4\u00a0million REALTORS\u00ae nationwide.' ),
 		buttonText:     attr( 'button-text', 'Get my free home value estimate' ),
 		disclaimer:     attr( 'disclaimer', 'Your information is kept private and will never be sold. A local REALTOR\u00ae may follow up to discuss your results.' ),
 		sendingText:    attr( 'sending-text', 'Sending\u2026' ),
@@ -133,7 +133,7 @@
 		target:         attr( 'target', '' ),
 	};
 
-	// Sanitize target selector — only allow simple ID/class selectors
+	// Sanitize target selector -- only allow simple ID/class selectors
 	if ( CFG.target && ! /^[#.][a-zA-Z0-9_-]+$/.test( CFG.target ) ) {
 		console.warn( 'RPR AVM Embed: Invalid data-target selector. Must be a simple #id or .class. Ignoring.' );
 		CFG.target = '';
@@ -149,7 +149,7 @@
 		CFG.webhook = '';
 	}
 
-	// Block webhooks to localhost/private IPs (defense in depth — fetch runs client-side but still good practice)
+	// Block webhooks to localhost/private IPs (defense in depth -- fetch runs client-side but still good practice)
 	if ( CFG.webhook ) {
 		try {
 			const whUrl = new URL( CFG.webhook );
@@ -168,7 +168,7 @@
 		console.warn( 'RPR AVM Embed: No webhook configured. Leads will NOT be captured. The RPR widget will still display.' );
 	}
 
-	/* ── Derived values ───────────────────────────────────────────── */
+	/* -- Derived values --------------------------------------------- */
 	function isHex( str ) {
 		return /^#?[0-9a-fA-F]{3,6}$/.test( str );
 	}
@@ -184,7 +184,7 @@
 	}
 
 	function darkenHex( hex, amount ) {
-		if ( ! isHex( hex ) ) return hex; // can't darken rgba/named — return as-is
+		if ( ! isHex( hex ) ) return hex; // can't darken rgba/named -- return as-is
 		hex = hex.replace( '#', '' );
 		if ( hex.length === 3 ) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
 		const r = Math.max( 0, parseInt( hex.substring(0,2), 16 ) - amount );
@@ -204,12 +204,12 @@
 	const focusRing  = CFG.colorFocusRing || hexToRgba( CFG.colorBrand, 0.15 );
 	const linkColor  = CFG.colorLink || CFG.colorBrand;
 
-	/* ── Default fields ───────────────────────────────────────────── */
+	/* -- Default fields --------------------------------------------- */
 	let FIELDS;
 	if ( CFG.fieldsJson ) {
 		try {
 			FIELDS = JSON.parse( CFG.fieldsJson );
-			// Sanitize field IDs — they're used in selectors and element IDs
+			// Sanitize field IDs -- they're used in selectors and element IDs
 			if ( Array.isArray( FIELDS ) ) {
 				FIELDS = FIELDS.filter( f => f && typeof f === 'object' && f.id );
 				FIELDS.forEach( f => {
@@ -233,14 +233,14 @@
 	}
 
 	/* ================================================================
-	   §2  INJECT STYLES (scoped via .rpr-avm-embed prefix)
+	   S2  INJECT STYLES (scoped via .rpr-avm-embed prefix)
 	   ================================================================ */
 	const STYLE_ID = 'rpr-avm-embed-styles';
 	if ( ! document.getElementById( STYLE_ID ) ) {
 		const style = document.createElement( 'style' );
 		style.id = STYLE_ID;
 		style.textContent = `
-/* ── RPR AVM Embed — Scoped Styles ───────────────────────── */
+/* -- RPR AVM Embed -- Scoped Styles ------------------------- */
 .rpr-avm-embed *,
 .rpr-avm-embed *::before,
 .rpr-avm-embed *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -424,7 +424,7 @@
 	.rpr-avm-embed .rpr-e-field.half { grid-column: span 1; }
 }
 
-/* ── Google Places autocomplete dropdown ─────────────────── */
+/* -- Google Places autocomplete dropdown ------------------- */
 .pac-container {
 	z-index: 999999 !important;
 	font-family: var(--rpr-font-body, system-ui, sans-serif) !important;
@@ -442,8 +442,20 @@
 		return ( name || '' ).replace( /[^a-zA-Z0-9 \-]/g, '' );
 	}
 
+	function parseDimension( val, fallback ) {
+		// Supports: '520' (bare number -> px), '520px', '100%', 'none'
+		if ( ! val ) return fallback;
+		val = String( val ).trim().toLowerCase();
+		if ( val === 'none' ) return 'none';
+		if ( val.endsWith( '%' ) ) return val;
+		if ( val.endsWith( 'px' ) ) return val;
+		if ( val.endsWith( 'vw' ) ) return val;
+		var num = parseInt( val, 10 );
+		return isNaN( num ) ? fallback : num + 'px';
+	}
+
 	/* ================================================================
-	   §3  LOAD GOOGLE FONTS
+	   S3  LOAD GOOGLE FONTS
 	   ================================================================ */
 	function loadFonts() {
 		const gFonts = [];
@@ -464,7 +476,7 @@
 	}
 
 	/* ================================================================
-	   §4  LOAD GOOGLE PLACES (if configured)
+	   S4  LOAD GOOGLE PLACES (if configured)
 	   ================================================================ */
 	function loadGooglePlaces() {
 		if ( ! CFG.googleKey ) return;
@@ -479,7 +491,7 @@
 	}
 
 	/* ================================================================
-	   §5  LOAD reCAPTCHA v3 (if configured)
+	   S5  LOAD reCAPTCHA v3 (if configured)
 	   ================================================================ */
 	function loadRecaptcha() {
 		if ( ! CFG.recaptchaSiteKey ) return;
@@ -492,7 +504,7 @@
 	}
 
 	/* ================================================================
-	   §6  DOM HELPERS
+	   S6  DOM HELPERS
 	   ================================================================ */
 	function el( tag, props ) {
 		const node = document.createElement( tag );
@@ -512,14 +524,14 @@
 	}
 
 	/* ================================================================
-	   §7  BUILD THE WIDGET DOM
+	   S7  BUILD THE WIDGET DOM
 	   ================================================================ */
 	function buildWidget() {
 		loadFonts();
 		loadGooglePlaces();
 		loadRecaptcha();
 
-		/* ── Mount point ──────────────────────────────────────────── */
+		/* -- Mount point -------------------------------------------- */
 		let mount;
 		if ( CFG.target ) {
 			mount = document.querySelector( CFG.target );
@@ -530,7 +542,7 @@
 			SCRIPT.parentNode.insertBefore( mount, SCRIPT.nextSibling );
 		}
 
-		/* ── Root wrapper ─────────────────────────────────────────── */
+		/* -- Root wrapper ------------------------------------------- */
 		const wrap = el( 'div', { className: 'rpr-avm-embed' } );
 		wrap.id = CFG.formId;
 
@@ -551,13 +563,13 @@
 		s.setProperty( '--rpr-font-heading', `'${safeFontName( CFG.fontHeading )}', Georgia, serif` );
 		s.setProperty( '--rpr-font-body', `'${safeFontName( CFG.fontBody )}', system-ui, sans-serif` );
 		s.setProperty( '--rpr-font-size-base', parseInt( CFG.fontSize, 10 ) + 'px' );
-		s.setProperty( '--rpr-card-max-width', parseInt( CFG.cardMaxWidth, 10 ) + 'px' );
+		s.setProperty( '--rpr-card-max-width', parseDimension( CFG.cardMaxWidth, '520px' ) );
 		s.setProperty( '--rpr-card-radius', parseInt( CFG.cardRadius, 10 ) + 'px' );
 		s.setProperty( '--rpr-widget-min-h', parseInt( CFG.widgetMinH, 10 ) + 'px' );
 		const padMap = { none: '0', compact: '8px', comfortable: '24px' };
 		s.setProperty( '--rpr-widget-padding', padMap[ CFG.widgetPadding ] || '24px' );
 
-		/* ── Display mode: floating / modal triggers ──────────────── */
+		/* -- Display mode: floating / modal triggers ---------------- */
 		if ( CFG.displayMode === 'floating' ) {
 			const btn = el( 'button', { className: 'rpr-e-float-btn', textContent: CFG.floatLabel } );
 			if ( CFG.floatPos === 'bottom-left' ) btn.classList.add( 'left' );
@@ -567,7 +579,7 @@
 			wrap.appendChild( el( 'button', { className: 'rpr-e-modal-trigger', type: 'button', textContent: CFG.modalTrigger } ) );
 		}
 
-		/* ── Card ──────────────────────────────────────────────────── */
+		/* -- Card ---------------------------------------------------- */
 		const card = el( 'div', { className: 'rpr-e-card' } );
 
 		// Step 1: form
@@ -631,7 +643,7 @@
 		wrap.appendChild( card );
 		mount.appendChild( wrap );
 
-		/* ── Bind events ──────────────────────────────────────────── */
+		/* -- Bind events -------------------------------------------- */
 		bindForm( wrap, card, step1, step2 );
 
 		if ( CFG.displayMode === 'floating' || CFG.displayMode === 'modal' ) {
@@ -644,7 +656,7 @@
 		}
 	}
 
-	/* ── Header builder ───────────────────────────────────────────── */
+	/* -- Header builder --------------------------------------------- */
 	function buildHeader() {
 		const header = el( 'div', { className: 'rpr-e-header' } );
 		const avatar = el( 'div', { className: 'rpr-e-avatar' } );
@@ -664,7 +676,7 @@
 		return header;
 	}
 
-	/* ── Field builder ────────────────────────────────────────────── */
+	/* -- Field builder ---------------------------------------------- */
 	function buildField( field ) {
 		const wrapper = el( 'div', { className: 'rpr-e-field ' + ( field.width === 'half' ? 'half' : 'full' ) } );
 		const label = el( 'label', { className: 'rpr-e-label', textContent: field.label } );
@@ -694,7 +706,7 @@
 	}
 
 	/* ================================================================
-	   §8  FORM LOGIC
+	   S8  FORM LOGIC
 	   ================================================================ */
 	function bindForm( wrap, card, step1, step2 ) {
 		const btn    = step1.querySelector( '.rpr-e-submit' );
@@ -753,7 +765,7 @@
 				status.style.color = '';
 			}
 
-			// Show step 2 (button stays disabled — step transition replaces the view)
+			// Show step 2 (button stays disabled -- step transition replaces the view)
 			showStep2( card, step1, step2, payload.address );
 		} );
 
@@ -775,7 +787,7 @@
 		}
 	}
 
-	/* ── Validation ───────────────────────────────────────────────── */
+	/* -- Validation ------------------------------------------------- */
 	function validateForm( step1 ) {
 		const errors = [];
 		FIELDS.forEach( field => {
@@ -816,7 +828,7 @@
 		if ( errEl ) errEl.textContent = '';
 	}
 
-	/* ── Collect payload ──────────────────────────────────────────── */
+	/* -- Collect payload -------------------------------------------- */
 	function collectPayload( step1 ) {
 		const payload = {
 			form_instance: CFG.formId,
@@ -852,7 +864,7 @@
 		return payload;
 	}
 
-	/* ── Show step 2: RPR widget ──────────────────────────────────── */
+	/* -- Show step 2: RPR widget ------------------------------------ */
 	function showStep2( card, step1, step2, address ) {
 		step1.hidden = true;
 		step2.hidden = false;
@@ -954,7 +966,7 @@
 		return css;
 	}
 
-	/* ── Modal / floating overlay ─────────────────────────────────── */
+	/* -- Modal / floating overlay ----------------------------------- */
 	function setupOverlay( wrap, card ) {
 		const overlay = el( 'div', { className: 'rpr-e-overlay', role: 'dialog' } );
 		overlay.setAttribute( 'aria-modal', 'true' );
@@ -971,7 +983,7 @@
 		} );
 	}
 
-	/* ── Google Places autocomplete ───────────────────────────────── */
+	/* -- Google Places autocomplete --------------------------------- */
 	function attachPlaces( wrap, retries ) {
 		retries = retries || 0;
 		if ( typeof google === 'undefined' || ! google.maps || ! google.maps.places ) {
@@ -1010,7 +1022,7 @@
 	}
 
 	/* ================================================================
-	   §9  BOOT
+	   S9  BOOT
 	   ================================================================ */
 	if ( document.readyState === 'loading' ) {
 		document.addEventListener( 'DOMContentLoaded', buildWidget );

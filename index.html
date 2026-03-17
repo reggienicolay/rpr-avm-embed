@@ -584,8 +584,15 @@ body {
             <input type="text" id="cardRadius" placeholder="18">
           </div>
           <div class="field-group">
-            <label>Card Max Width (px)</label>
-            <input type="text" id="cardMaxWidth" placeholder="520">
+            <label>Card Max Width</label>
+            <select id="cardMaxWidth">
+              <option value="520">520px (default)</option>
+              <option value="100%">100% (fill container)</option>
+              <option value="480">480px (narrow)</option>
+              <option value="600">600px (wide)</option>
+              <option value="700">700px (extra wide)</option>
+              <option value="none">None (no limit)</option>
+            </select>
           </div>
         </div>
 
