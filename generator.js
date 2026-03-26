@@ -2,7 +2,7 @@
    All event handlers are registered here (no inline onclick/oninput in HTML).
    Enables strict CSP: script-src 'self'. */
 
-let displayMode = 'inline';
+var displayMode = 'inline';
 
 /* ----- Boot ----- */
 document.addEventListener('DOMContentLoaded', function() {
@@ -51,12 +51,20 @@ document.addEventListener('DOMContentLoaded', function() {
   /* Float position */
   document.getElementById('floatPosition').addEventListener('change', generate);
 
-  /* Advanced toggle */
-  var advBtn = document.getElementById('advancedToggle');
-  var advSec = document.getElementById('advancedSection');
-  advBtn.addEventListener('click', function() {
-    advBtn.classList.toggle('open');
-    advSec.classList.toggle('visible');
+  /* Collapsible section headers */
+  document.querySelectorAll('.section-header').forEach(function(header) {
+    function toggle() {
+      var bodyId = header.getAttribute('data-section');
+      var body = document.getElementById(bodyId);
+      if (!body) return;
+      var collapsed = header.classList.toggle('collapsed');
+      body.classList.toggle('collapsed');
+      header.setAttribute('aria-expanded', String(!collapsed));
+    }
+    header.addEventListener('click', toggle);
+    header.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
   });
 
   /* GDPR toggle */
@@ -255,21 +263,22 @@ function renderCode(cfg) {
 
   /* Show/hide warning banner */
   var warning = document.getElementById('webhookWarning');
+  var warnIcon = '<svg class="output-warning-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8z" fill="currentColor"/><path d="M8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" fill="currentColor"/></svg> ';
   var webhookInvalid = cfg.webhook && !cfg.webhook.match(/^https:\/\//);
   if (warning) {
     if (webhookInvalid) {
       warning.classList.add('visible');
-      warning.innerHTML = '<svg class="output-warning-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8z" fill="currentColor"/><path d="M8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" fill="currentColor"/></svg> Webhook URL must start with https:// -- the embed script will reject non-HTTPS URLs.';
+      warning.innerHTML = warnIcon + 'Webhook URL must start with https:// -- the embed script will reject non-HTTPS URLs.';
     } else if (!cfg.webhook) {
       warning.classList.add('visible');
-      warning.innerHTML = '<svg class="output-warning-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8z" fill="currentColor"/><path d="M8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" fill="currentColor"/></svg> No webhook URL configured -- leads will not be captured when this embed is live. Add a webhook URL above before deploying.';
+      warning.innerHTML = warnIcon + 'No webhook URL configured -- leads will not be captured when this embed is live. Add a webhook URL above before deploying.';
     } else {
       warning.classList.remove('visible');
     }
   }
 
   lines.push('<script');
-  lines.push('  src="https://reggienicolay.github.io/rpr-avm-embed/rpr-avm-embed.js"');
+  lines.push('  src="https://pub-723d8ae87de842b5a806b4ca544eb797.r2.dev/rpr-avm-embed.js"');
 
   /* Required */
   lines.push('  data-rpr-token="' + escAttr(cfg.rprToken || 'YOUR_RPR_TOKEN') + '"');
@@ -324,7 +333,7 @@ function renderCode(cfg) {
     if (cfg.gdprText) lines.push('  data-gdpr-text="' + escAttr(cfg.gdprText) + '"');
   }
 
-  lines.push('><' + '/script>');
+  lines.push('></script>');
 
   var raw = lines.join('\n');
   var block = document.getElementById('codeBlock');
@@ -332,13 +341,50 @@ function renderCode(cfg) {
   block.innerHTML = highlight(raw);
 }
 
-/* ----- Syntax highlighting ----- */
+/* ----- Syntax highlighting (character-by-character tokenizer) ----- */
 function highlight(code) {
-  return esc(code)
-    .replace(/(&lt;\/?script[^&]*?&gt;)/g, '<span class="tag">$1</span>')
-    .replace(/(data-[\w-]+)=/g, '<span class="attr-name">$1</span>=')
-    .replace(/src=/g, '<span class="attr-name">src</span>=')
-    .replace(/"([^"]*)"/g, '<span class="attr-value">"$1"</span>');
+  var out = '', i = 0, len = code.length;
+  while (i < len) {
+    /* Closing tag </script> */
+    if (code.slice(i, i + 9) === '<\/script>') {
+      out += '<span class="tag">&lt;/script&gt;</span>';
+      i += 9;
+    }
+    /* Opening <script */
+    else if (code.slice(i, i + 7) === '<script') {
+      out += '<span class="tag">&lt;script</span>';
+      i += 7;
+    }
+    /* Closing > of a tag */
+    else if (code[i] === '>') {
+      out += '<span class="tag">&gt;</span>';
+      i++;
+    }
+    /* Attribute name (letters, digits, hyphens) */
+    else if (/[a-zA-Z_]/.test(code[i])) {
+      var start = i;
+      while (i < len && /[\w-]/.test(code[i])) i++;
+      out += '<span class="attr-name">' + esc(code.slice(start, i)) + '</span>';
+    }
+    /* = sign */
+    else if (code[i] === '=') {
+      out += '=';
+      i++;
+    }
+    /* Quoted attribute value */
+    else if (code[i] === '"') {
+      var end = code.indexOf('"', i + 1);
+      if (end === -1) end = len - 1;
+      out += '<span class="attr-value">' + esc(code.slice(i, end + 1)) + '</span>';
+      i = end + 1;
+    }
+    /* Whitespace and everything else */
+    else {
+      out += esc(code[i]);
+      i++;
+    }
+  }
+  return out;
 }
 
 /* ----- Copy ----- */

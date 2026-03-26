@@ -1,6 +1,6 @@
 /**
  * RPR AVM Lead Capture -- Standalone Embeddable Widget
- * Version: 1.0.4
+ * Version: 1.1.0
  *
  * Zero-dependency, platform-agnostic embed script.
  * Works on Luxury Presence, Squarespace, Wix, static HTML, or any website.
@@ -170,7 +170,7 @@
 
 	/* -- Derived values --------------------------------------------- */
 	function isHex( str ) {
-		return /^#?[0-9a-fA-F]{3,6}$/.test( str );
+		return /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test( str );
 	}
 
 	function hexToRgba( hex, alpha ) {
@@ -571,7 +571,7 @@
 
 		/* -- Display mode: floating / modal triggers ---------------- */
 		if ( CFG.displayMode === 'floating' ) {
-			const btn = el( 'button', { className: 'rpr-e-float-btn', textContent: CFG.floatLabel } );
+			const btn = el( 'button', { className: 'rpr-e-float-btn', type: 'button', textContent: CFG.floatLabel } );
 			if ( CFG.floatPos === 'bottom-left' ) btn.classList.add( 'left' );
 			wrap.appendChild( btn );
 		}
@@ -606,6 +606,7 @@
 			const lbl = el( 'label', { htmlFor: consentId, textContent: CFG.gdprText } );
 			gdprWrap.appendChild( cb );
 			gdprWrap.appendChild( lbl );
+			gdprWrap.appendChild( el( 'div', { className: 'rpr-e-error-msg', role: 'alert' } ) );
 			grid.appendChild( gdprWrap );
 		}
 
@@ -769,11 +770,15 @@
 			showStep2( card, step1, step2, payload.address );
 		} );
 
-		// Enter key submits
+		// Enter key submits + clear errors on input
 		step1.querySelectorAll( '.rpr-e-input, .rpr-e-select' ).forEach( input => {
 			input.addEventListener( 'keydown', e => { if ( e.key === 'Enter' ) btn.click(); } );
 			input.addEventListener( 'input', () => clearError( input ) );
 		} );
+
+		// Clear GDPR error on check
+		const gdprCb = step1.querySelector( '[data-field-id="consent"]' );
+		if ( gdprCb ) gdprCb.addEventListener( 'change', () => clearError( gdprCb ) );
 
 		// Back link
 		const backBtn = step2.querySelector( '.rpr-e-back-link' );
