@@ -94,6 +94,12 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('copyBtn').addEventListener('click', copyCode);
   document.getElementById('copyLinkBtn').addEventListener('click', copyLink);
 
+  /* Float button toggles card visibility in preview */
+  document.getElementById('floatPreview').addEventListener('click', function() {
+    var wrap = document.getElementById('liveCardWrap');
+    wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+  });
+
   /* Restore config from URL hash or localStorage */
   var hashStr = location.hash.slice(1);
   var stored  = '';
@@ -238,6 +244,8 @@ function renderPreview(cfg) {
   var floatBtn = document.getElementById('floatPreview');
   if (cfg.displayMode === 'floating') {
     floatBtn.style.display = 'block';
+    floatBtn.style.cursor = 'pointer';
+    floatBtn.style.pointerEvents = 'auto';
     floatBtn.textContent = cfg.floatLabel || "What's My Home Worth?";
     floatBtn.style.background = brand;
     floatBtn.style.color = textColor;
