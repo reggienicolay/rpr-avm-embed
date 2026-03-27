@@ -90,8 +90,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  /* Copy button */
+  /* Copy buttons */
   document.getElementById('copyBtn').addEventListener('click', copyCode);
+  document.getElementById('copyLinkBtn').addEventListener('click', copyLink);
+
+  /* Restore config from URL hash or localStorage */
+  var hashStr = location.hash.slice(1);
+  var stored  = '';
+  try { stored = localStorage.getItem('rpr-avm-generator-config') || ''; } catch(e) {}
+  var configStr = hashStr || stored;
+  if (configStr) applyConfig(hashToConfig(configStr));
 
   /* Initial render */
   generate();
@@ -106,7 +114,7 @@ function getConfig() {
     agentName:      val('agentName'),
     brokerage:      val('brokerage'),
     logoUrl:        val('logoUrl'),
-    colorBrand:     val('colorBrandHex') || '#0070C1',
+    colorBrand:     val('colorBrandHex') || '#0086E6',
     displayMode:    displayMode,
     floatLabel:     val('floatLabel'),
     floatPosition:  document.getElementById('floatPosition').value,
@@ -140,11 +148,12 @@ function generate() {
   var cfg = getConfig();
   renderPreview(cfg);
   renderCode(cfg);
+  persistConfig();
 }
 
 /* ----- Live preview ----- */
 function renderPreview(cfg) {
-  var brand     = cfg.colorBrand || '#0070C1';
+  var brand     = cfg.colorBrand || '#0086E6';
   var cardBg    = cfg.cardBg || '#ffffff';
   var radius    = cfg.cardRadius || '18';
   var cardBdr   = cfg.cardBorder || '#e2e2e2';
@@ -289,7 +298,7 @@ function renderCode(cfg) {
   if (cfg.agentName)  lines.push('  data-agent-name="' + escAttr(cfg.agentName) + '"');
   if (cfg.brokerage)  lines.push('  data-brokerage="' + escAttr(cfg.brokerage) + '"');
   if (cfg.logoUrl)    lines.push('  data-logo-url="' + escAttr(cfg.logoUrl) + '"');
-  if (cfg.colorBrand && cfg.colorBrand !== '#0070C1') lines.push('  data-color-brand="' + escAttr(cfg.colorBrand) + '"');
+  if (cfg.colorBrand && cfg.colorBrand !== '#0086E6') lines.push('  data-color-brand="' + escAttr(cfg.colorBrand) + '"');
 
   /* Display mode */
   if (cfg.displayMode !== 'inline') {
@@ -387,39 +396,131 @@ function highlight(code) {
   return out;
 }
 
-/* ----- Copy ----- */
-function copyCode() {
-  var raw = document.getElementById('codeBlock').dataset.raw || '';
-  var btn = document.getElementById('copyBtn');
+/* ----- Config persistence (URL hash + localStorage) ----- */
+var FIELD_KEYS = [
+  'rprToken','webhook','formId','agentName','brokerage','logoUrl','colorBrandHex',
+  'headline','subheadline','btnLabel','floatLabel','modalTrigger',
+  'fontHeading','fontBody','cardBg','cardBorder','cardRadius',
+  'googleKey','gdprText','disclaimer'
+];
 
+function configToHash() {
+  var params = new URLSearchParams();
+  FIELD_KEYS.forEach(function(key) {
+    var el = document.getElementById(key);
+    if (!el) return;
+    var v = el.value.trim();
+    if (!v) return;
+    params.set(key, v);
+  });
+  if (displayMode !== 'inline') params.set('displayMode', displayMode);
+  var floatPos = document.getElementById('floatPosition').value;
+  if (floatPos !== 'bottom-right') params.set('floatPosition', floatPos);
+  var cardMaxW = document.getElementById('cardMaxWidth').value;
+  if (cardMaxW !== '520') params.set('cardMaxWidth', cardMaxW);
+  if (document.getElementById('widgetMatchBrand').checked) params.set('widgetMatchBrand', '1');
+  if (document.getElementById('widgetHideChart').checked)  params.set('widgetHideChart', '1');
+  if (document.getElementById('widgetHideLinks').checked)  params.set('widgetHideLinks', '1');
+  if (document.getElementById('gdprEnabled').checked) params.set('gdprEnabled', '1');
+  return params.toString();
+}
+
+function hashToConfig(str) {
+  var config = {};
+  var params;
+  try { params = new URLSearchParams(str); } catch(e) { return config; }
+  FIELD_KEYS.forEach(function(key) {
+    if (params.has(key)) config[key] = params.get(key);
+  });
+  if (params.has('displayMode'))      config.displayMode = params.get('displayMode');
+  if (params.has('floatPosition'))    config.floatPosition = params.get('floatPosition');
+  if (params.has('cardMaxWidth'))     config.cardMaxWidth = params.get('cardMaxWidth');
+  if (params.has('widgetMatchBrand')) config.widgetMatchBrand = true;
+  if (params.has('widgetHideChart'))  config.widgetHideChart = true;
+  if (params.has('widgetHideLinks'))  config.widgetHideLinks = true;
+  if (params.has('gdprEnabled'))      config.gdprEnabled = true;
+  return config;
+}
+
+function applyConfig(config) {
+  FIELD_KEYS.forEach(function(key) {
+    if (!(key in config)) return;
+    var el = document.getElementById(key);
+    if (el) el.value = config[key];
+  });
+  if (config.colorBrandHex) {
+    var hex = config.colorBrandHex;
+    if (/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(hex)) {
+      document.getElementById('colorBrandPicker').value = hex;
+    }
+  }
+  if (config.displayMode) {
+    displayMode = config.displayMode;
+    document.querySelectorAll('.mode-tab').forEach(function(t) { t.classList.remove('active'); });
+    var activeTab = document.querySelector('.mode-tab[data-mode="' + displayMode + '"]');
+    if (activeTab) activeTab.classList.add('active');
+    document.getElementById('floatOptions').classList.toggle('visible', displayMode === 'floating');
+    document.getElementById('modalOptions').classList.toggle('visible', displayMode === 'modal');
+  }
+  if (config.floatPosition) document.getElementById('floatPosition').value = config.floatPosition;
+  if (config.cardMaxWidth)  document.getElementById('cardMaxWidth').value = config.cardMaxWidth;
+  if (config.widgetMatchBrand) document.getElementById('widgetMatchBrand').checked = true;
+  if (config.widgetHideChart)  document.getElementById('widgetHideChart').checked = true;
+  if (config.widgetHideLinks)  document.getElementById('widgetHideLinks').checked = true;
+  if (config.gdprEnabled) {
+    document.getElementById('gdprEnabled').checked = true;
+    document.getElementById('gdprTextField').style.display = 'block';
+  }
+}
+
+function persistConfig() {
+  var hash = configToHash();
+  try { history.replaceState(null, '', hash ? '#' + hash : location.pathname + location.search); } catch(e) {}
+  try { localStorage.setItem('rpr-avm-generator-config', hash); } catch(e) {}
+}
+
+/* ----- Copy generator link ----- */
+function copyLink() {
+  var hash = configToHash();
+  var url = location.href.split('#')[0] + (hash ? '#' + hash : '');
+  var btn = document.getElementById('copyLinkBtn');
+  clipboardWrite(url, btn, 'Copy generator link');
+}
+
+/* ----- Shared clipboard helper ----- */
+function clipboardWrite(text, btn, resetLabel) {
   function onSuccess() {
     btn.textContent = 'Copied!';
     btn.classList.add('copied');
-    setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    setTimeout(function() { btn.textContent = resetLabel; btn.classList.remove('copied'); }, 2000);
   }
-
-  function onFail() {
-    btn.textContent = 'Failed';
-    setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
-  }
-
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(raw).then(onSuccess, onFail);
-  } else {
-    /* Fallback for HTTP or older browsers */
+  function fallback() {
     try {
       var ta = document.createElement('textarea');
-      ta.value = raw;
+      ta.value = text;
       ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
       onSuccess();
-    } catch (e) {
-      onFail();
+    } catch(e) {
+      btn.textContent = 'Failed';
+      setTimeout(function() { btn.textContent = resetLabel; }, 2000);
     }
   }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(onSuccess, fallback);
+  } else {
+    fallback();
+  }
+}
+
+/* ----- Copy embed code ----- */
+function copyCode() {
+  var raw = document.getElementById('codeBlock').dataset.raw || '';
+  var btn = document.getElementById('copyBtn');
+  clipboardWrite(raw, btn, 'Copy');
 }
 
 /* ----- Helpers ----- */

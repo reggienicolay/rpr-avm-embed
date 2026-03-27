@@ -17,8 +17,8 @@
   --border:   #e4e4e7;
   --surface:  #fafafa;
   --white:    #ffffff;
-  --accent:   #0070C1;
-  --accent-h: #005a9e;
+  --accent:   #0086E6;
+  --accent-h: #0086E6;
   --success:  #16a34a;
   --warn:     #f59e0b;
   --warn-bg:  #fffbeb;
@@ -40,7 +40,7 @@ body {
 
 /* -- Header -- */
 .site-header {
-  background: #18181b;
+  background: var(--accent);
   padding: 0 2rem;
   height: 56px;
   display: flex;
@@ -55,7 +55,7 @@ body {
   color: #fff;
   letter-spacing: -0.01em;
 }
-.site-header .wordmark em { font-style: italic; color: rgba(255,255,255,0.55); }
+.site-header .wordmark em { font-style: italic; color: rgba(255,255,255,0.85); }
 .site-header .badge {
   font-size: 11px;
   font-family: var(--mono);
@@ -69,7 +69,6 @@ body {
 .layout {
   display: grid;
   grid-template-columns: 380px 1fr;
-  grid-template-rows: 1fr auto;
   min-height: calc(100vh - 56px);
 }
 
@@ -84,28 +83,41 @@ body {
 
 /* Collapsible section headers */
 .section-header {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--ink-mid);
-  margin: 1.75rem 0 0;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  cursor: pointer;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  margin-top: 0.25rem;
+  border-bottom: 1px solid var(--border);
   user-select: none;
+  -webkit-user-select: none;
 }
 .section-header:first-child { margin-top: 0; }
-.section-header:hover { color: var(--ink); }
-
+.section-header:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.section-title {
+  font-size: 12px;
+  font-family: var(--mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-mid);
+}
+.section-title .req { color: #e11d48; margin-left: 2px; }
 .section-chevron {
-  font-size: 10px;
-  transition: transform 0.2s;
-  display: inline-block;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  color: var(--ink-soft);
+  flex-shrink: 0;
 }
 .section-header.collapsed .section-chevron { transform: rotate(-90deg); }
 
@@ -379,9 +391,8 @@ body {
 }
 .lc-gdpr input { margin-top: 2px; }
 
-/* -- Output panel (bottom) -- */
+/* -- Output panel (inside preview column) -- */
 .output-panel {
-  grid-column: 1 / -1;
   background: var(--white);
   border-top: 1px solid var(--border);
   padding: 1.25rem 1.5rem;
@@ -452,10 +463,8 @@ body {
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
   }
   .preview-panel { min-height: 480px; }
-  .output-panel { grid-column: 1; }
 }
 </style>
 </head>
@@ -474,7 +483,8 @@ body {
 
       <!-- RPR Token -->
       <div class="section-header" role="button" tabindex="0" aria-expanded="true" data-section="sec-rpr-widget">
-        <span class="section-chevron">&#9662;</span> RPR Widget
+        <span class="section-title">RPR Widget</span>
+        <span class="section-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
       </div>
       <div class="section-body" id="sec-rpr-widget">
         <div class="field-group">
@@ -485,7 +495,8 @@ body {
 
       <!-- Webhook -->
       <div class="section-header" role="button" tabindex="0" aria-expanded="true" data-section="sec-lead-capture">
-        <span class="section-chevron">&#9662;</span> Lead Capture
+        <span class="section-title">Lead Capture</span>
+        <span class="section-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
       </div>
       <div class="section-body" id="sec-lead-capture">
         <div class="field-group">
@@ -500,10 +511,11 @@ body {
       </div>
 
       <!-- Branding -->
-      <div class="section-header" role="button" tabindex="0" aria-expanded="true" data-section="sec-branding">
-        <span class="section-chevron">&#9662;</span> Branding
+      <div class="section-header collapsed" role="button" tabindex="0" aria-expanded="false" data-section="sec-branding">
+        <span class="section-title">Branding</span>
+        <span class="section-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
       </div>
-      <div class="section-body" id="sec-branding">
+      <div class="section-body collapsed" id="sec-branding">
         <div class="field-group">
           <label>Agent Name</label>
           <input type="text" id="agentName" placeholder="Jane Smith">
@@ -519,17 +531,18 @@ body {
         <div class="field-group">
           <label>Brand Color</label>
           <div class="color-field">
-            <input type="color" id="colorBrandPicker" value="#0070C1">
-            <input type="text" id="colorBrandHex" value="#0070C1" placeholder="#0070C1">
+            <input type="color" id="colorBrandPicker" value="#0086E6">
+            <input type="text" id="colorBrandHex" value="#0086E6" placeholder="#0086E6">
           </div>
         </div>
       </div>
 
       <!-- Display Mode -->
-      <div class="section-header" role="button" tabindex="0" aria-expanded="true" data-section="sec-display-mode">
-        <span class="section-chevron">&#9662;</span> Display Mode
+      <div class="section-header collapsed" role="button" tabindex="0" aria-expanded="false" data-section="sec-display-mode">
+        <span class="section-title">Display Mode</span>
+        <span class="section-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
       </div>
-      <div class="section-body" id="sec-display-mode">
+      <div class="section-body collapsed" id="sec-display-mode">
         <div class="mode-tabs" id="modeTabs">
           <button class="mode-tab active" data-mode="inline">Inline</button>
           <button class="mode-tab" data-mode="floating">Floating</button>
@@ -557,10 +570,11 @@ body {
       </div>
 
       <!-- Text -->
-      <div class="section-header" role="button" tabindex="0" aria-expanded="true" data-section="sec-text">
-        <span class="section-chevron">&#9662;</span> Text
+      <div class="section-header collapsed" role="button" tabindex="0" aria-expanded="false" data-section="sec-text">
+        <span class="section-title">Text</span>
+        <span class="section-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
       </div>
-      <div class="section-body" id="sec-text">
+      <div class="section-body collapsed" id="sec-text">
         <div class="field-group">
           <label>Headline</label>
           <input type="text" id="headline" placeholder="What's your home worth?">
@@ -576,10 +590,11 @@ body {
       </div>
 
       <!-- Advanced -->
-      <div class="section-header" role="button" tabindex="0" aria-expanded="true" data-section="sec-advanced">
-        <span class="section-chevron">&#9662;</span> Advanced Options
+      <div class="section-header collapsed" role="button" tabindex="0" aria-expanded="false" data-section="sec-advanced">
+        <span class="section-title">Advanced Options</span>
+        <span class="section-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
       </div>
-      <div class="section-body" id="sec-advanced">
+      <div class="section-body collapsed" id="sec-advanced">
 
         <!-- Typography -->
         <div class="section-label">Typography</div>
@@ -687,22 +702,24 @@ body {
         <button class="float-preview" id="floatPreview">What's My Home Worth?</button>
       </div>
     </div>
-  </div>
-
-  <!-- BOTTOM: Output code -->
-  <div class="output-panel">
-    <div class="output-header">
-      <h2>Embed code</h2>
-      <button class="btn-copy" id="copyBtn">Copy</button>
+    <!-- Output code (below preview, inside preview column) -->
+    <div class="output-panel">
+      <div class="output-header">
+        <h2>Embed code</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-copy" id="copyLinkBtn">Copy generator link</button>
+          <button class="btn-copy" id="copyBtn">Copy</button>
+        </div>
+      </div>
+      <div class="output-warning" id="webhookWarning">
+        <svg class="output-warning-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8z" fill="currentColor"/>
+          <path d="M8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" fill="currentColor"/>
+        </svg>
+        No webhook URL configured -- leads will not be captured when this embed is live. Add a webhook URL above before deploying.
+      </div>
+      <div class="code-block" id="codeBlock"></div>
     </div>
-    <div class="output-warning" id="webhookWarning">
-      <svg class="output-warning-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8z" fill="currentColor"/>
-        <path d="M8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" fill="currentColor"/>
-      </svg>
-      No webhook URL configured -- leads will not be captured when this embed is live. Add a webhook URL above before deploying.
-    </div>
-    <div class="code-block" id="codeBlock"></div>
   </div>
 
 </div>
